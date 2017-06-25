@@ -1,0 +1,85 @@
+﻿<div id="searchVM">
+  <div class="panel panel-plant">
+    <div class="panel-heading">
+      <h3 class="panel-title">
+        <a href="#letterPanel" data-toggle="collapse" aria-expanded="false" aria-controls="letterPanel">
+          Filter <small class="pull-right" style="margin-top: 6px; color: #ECECEC">Click to expand</small>
+        </a>
+      </h3>
+    </div>
+
+    <div class="collapse" id="letterPanel">
+      <div class="panel-body" data-bind="visible: showSearch">
+        <div class="form-group" data-hide="top">
+          <label for="selectLettersFrom">Letters From</label>
+
+          <select class="form-control" id="selectLettersFrom" data-bind="options: lettersFrom, value: selectedFirstLetter, optionsCaption: 'Choose...'"></select>
+        </div>
+
+        <div class="form-group" data-hide="top" data-bind="visible: selectedFirstLetter">
+          <label for="selectLettersFromTwo">Letters To</label>
+
+          <select class="form-control" id="selectLettersFromTwo" data-bind="options: lettersTo, optionsText: 'letterTo', optionsValue: 'letterTo', value: selectedSecondLetter, optionsCaption: 'Choose...'"></select>
+        </div>
+
+        <div class="form-group" data-hide="top">
+          <button class="btn" data-bind="click: clickSearch, enable: showSecondLetter() === true, css: {'btn-plant': showSecondLetter() === true, 'btn-default': showSecondLetter() === false }">Search</button>
+
+          <button class="btn btn-default" data-bind="click: clickReset">Reset</button>
+        </div>
+
+        <hr style="margin-top: 20px; margin-bottom: 20px;">
+
+        <div class="form-group" data-hide="bottom">
+          <label for="selectLettersTo">Letters To</label>
+
+          <select class="form-control" id="selectLettersTo" data-bind="options: lettersTo2, value: selectedFirstLetter2, optionsCaption: 'Choose...'"></select>
+        </div>
+
+        <div class="form-group" data-hide="bottom" data-bind="visible: selectedFirstLetter2">
+          <label for="selectLettersToTwo">Letters From</label>
+
+          <select class="form-control" id="selectLettersToTwo" data-bind="options: lettersFrom2, optionsText: 'letterFrom', optionsValue: 'letterFrom', value: selectedSecondLetter2, optionsCaption: 'Choose...'"></select>
+        </div>
+
+        <div class="form-group" data-hide="bottom">
+          <button class="btn" data-bind="click: clickSearch2, enable: showFourthLetter() === true, css: {'btn-plant': showFourthLetter() === true, 'btn-default': showFourthLetter() === false }">Search</button>
+
+          <button class="btn btn-default" data-bind="click: clickReset">Reset</button>
+        </div>
+      </div>
+
+      <div class="panel-body" data-bind="visible: showSearch() === false">
+        <div class="list-group" data-bind="foreach: searchResults">
+          <a class="list-group-item" data-bind="attr: {'href':'http://ravenel.cdh.sc.edu/viewer/transcript/Carolina/' + segmentID + '/'}">
+            <p class="list-group-item-text clearfix">
+              <strong class="list-group-item-text-label">From: </strong>
+
+              <span class="list-group-item-text-data" data-bind="text: From_"></span>
+            </p>
+
+            <p class="list-group-item-text clearfix">
+              <strong class="list-group-item-text-label">To: </strong>
+
+              <span class="list-group-item-text-data" data-bind="text: To"></span>
+            </p>
+
+            <p class="list-group-item-text clearfix">
+              <strong class="list-group-item-text-label">Route: </strong>
+
+              <span class="list-group-item-text-data" data-bind="text: From_Loc + ' to ' + To_Loc"></span>
+            </p>
+
+            <p class="list-group-item-text clearfix">
+              <strong class="list-group-item-text-label">Date: </strong>
+
+              <span class="list-group-item-text-data" data-bind="text: Date"></span>
+            </p>
+          </a>
+        </div>
+
+        <button class="btn btn-default" data-bind="click: clickBack">Back</button>
+      </div>
+    </div>
+  </div>
+</div>

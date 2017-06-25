@@ -1,0 +1,58 @@
+[Thu Sep 01 - 12:00:01 AM] Update Sequence for Plants and Planters - Henry William Ravenel Initiated.
+
+[Thu Sep 01 - 12:00:01 AM] University of South Carolina's CONTENTdm Updating Sequence Initiated.
+[Thu Sep 01 - 12:00:55 AM] 	Double spacing discovered (8015): Dubose, Julius  J.
+[Thu Sep 01 - 12:00:55 AM] 	Double spacing discovered (8016): Dubose, Julius  J.
+[Thu Sep 01 - 12:00:55 AM] 	Double spacing discovered (8017): Dubose, Julius  J.
+[Thu Sep 01 - 12:00:55 AM] 	Double spacing discovered (8018): Dubose, Julius  J.
+[Thu Sep 01 - 12:01:13 AM] 	Double spacing discovered (8844): Cooke,  Mordecai Cubitt, 1825-1914
+[Thu Sep 01 - 12:01:22 AM] 	Semicolon discovered (9115): Gaillard, Peter C, 1812-1889; Gamgee, John, and Ravenel, Henry Williaim, 1814-1887
+[Thu Sep 01 - 12:01:22 AM] 	Semicolon discovered (9117): Meehan, Thomas, 1826-1901;
+[Thu Sep 01 - 12:01:22 AM] 	Semicolon discovered (9118): Wood, Horatio C., Jr.;
+[Thu Sep 01 - 12:01:22 AM] 	Semicolon discovered (9137): Austin, Coe Finch, 1831-1880;
+[Thu Sep 01 - 12:01:22 AM] The following results were returned: (01:21 minutes)
+
+[Thu Sep 01 - 12:01:22 AM]   Manuscripts Checked:  3743
+[Thu Sep 01 - 12:01:22 AM]   Letters Discovered:    228
+[Thu Sep 01 - 12:01:22 AM]   Letter Coordinates:    215
+[Thu Sep 01 - 12:01:22 AM]   Date Values Added:   10001
+[Thu Sep 01 - 12:01:22 AM]   Geogra Values Added:   123
+[Thu Sep 01 - 12:01:22 AM]   People Values Added:   234
+[Thu Sep 01 - 12:01:22 AM]   Scient Values Added:  1070
+
+[Thu Sep 01 - 12:01:22 AM] University of South Carolina's CONTENTdm Updating Sequence Complete.
+
+[Thu Sep 01 - 12:01:22 AM] Specimens Updating Sequence Initiated.
+[Thu Sep 01 - 12:01:24 AM] The following results were returned: (1.6254 seconds)
+
+[Thu Sep 01 - 12:01:24 AM]   Unique Specimens Added:  2509
+[Thu Sep 01 - 12:01:24 AM]   Total Specimens Counted: 5140
+
+[Thu Sep 01 - 12:01:24 AM] Specimens Updating Sequence Complete.
+
+[Thu Sep 01 - 12:01:24 AM] Clemson University's CONTENTdm Updating Sequence Initiated.
+[Thu Sep 01 - 12:01:24 AM] (752) Detected geogra value with beginning parentheses: (Ga.)
+[Thu Sep 01 - 12:01:24 AM] (752) Detected geogra value with beginning parentheses: (N.C.)
+[Thu Sep 01 - 12:01:24 AM] (752) Detected geogra value with beginning parentheses: (S.C.)
+[Thu Sep 01 - 12:02:17 AM] 	Double spacing discovered (1238): Porcher, Francis Peyre,  1825-1895
+[Thu Sep 01 - 12:02:44 AM] The following results were returned: (01:20 minutes)
+
+[Thu Sep 01 - 12:02:44 AM]   Manuscripts Checked: 724
+[Thu Sep 01 - 12:02:44 AM]   Letters Discovered:  224
+[Thu Sep 01 - 12:02:44 AM]   Letter Coordinates:  216
+[Thu Sep 01 - 12:02:44 AM]   Date Values Added:    92
+[Thu Sep 01 - 12:02:44 AM]   Geogra Values Added:  40
+[Thu Sep 01 - 12:02:44 AM]   Creato Values Added: 108
+[Thu Sep 01 - 12:02:44 AM]   Scient Values Added:  86
+
+[Thu Sep 01 - 12:02:44 AM] Clemson University's CONTENTdm Updating Sequence Complete.
+
+[Thu Sep 01 - 12:02:44 AM] Rewriting Database... Done!
+
+[Thu Sep 01 - 12:02:44 AM] Parsing Data for Letter Map Sequence Initiated.
+[Thu Sep 01 - 12:02:44 AM] Letter Map has 330 points. (0.0143 seconds)
+[Thu Sep 01 - 12:02:44 AM] Rewriting Letter Map Data... Done!
+[Thu Sep 01 - 12:02:44 AM] Parsing Data for Letter Map Sequence Complete.
+
+[Thu Sep 01 - 12:02:44 AM] Update Sequence for Plants and Planters - Henry William Ravenel Complete.
+[Thu Sep 01 - 12:02:44 AM] Time: 02:43 minutes
