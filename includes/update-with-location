@@ -1,0 +1,1049 @@
+#!/usr/bin/php
+<?php
+/**
+ * @file   includes/update
+ * @author Collin Haines - Center for Digital Humanities
+ *
+ * This file is executed nightly via crontab. Once execution is complete all of the
+ * following database's information pertaining to Henry William Ravenel is stored
+ * in a local file that replicates a database for our website:
+ *
+ * - University of South Carolina:
+ *   - Digital Collections: CONTENTdm (XML or JSON Database)
+ *   - A. C. Moore Herbarium: Symbiota (MySQL Database)
+ *
+ * - Clemson University:
+ *   - Digital Collections: CONTENTdm (XML or JSON Database)
+ *
+ * Sunday morning at 1 AM EST, any pointers that were previously stored in the past
+ * days that represent a manuscript does not exist, will be removed in hopes of a
+ * new manuscript being added for new data collection.
+ *
+ */
+
+// Declare the timezone, print errors.
+date_default_timezone_set("America/New_York");
+error_reporting(E_ALL);
+ini_set("display_errors", 1);
+
+class Ravenel {
+  private $mapData;
+  private $newData;
+  private $oldData;
+
+  //
+  // Debugging variables.
+  //
+
+  // These should be true for production.
+  private $writeDatabaseFile  = true;
+  private $writeLetterMapData = true;
+
+  // These should be false for production.
+  private $skipClemson  = false;
+  private $skipCarolina = false;
+  private $skipSymbiota = false;
+
+  /**
+   * Constructor.
+   */
+  public function __construct() {
+    $start = microtime(true);
+
+    $this->logger("Update Sequence for Plants and Planters - Henry William Ravenel Initiated.\n");
+
+    $this->newData = array(
+      "letters"   => 0,
+      "specimens" => 0,
+      "date"      => array(),
+      "geogra"    => array(),
+      "people"    => array(),
+      "scient"    => array(),
+      "images"    => array()
+    );
+
+    // Populate old data.
+    if (file_exists("/var/www/html/ravenel/includes/database.json")) {
+      $this->oldData = json_decode(file_get_contents("/var/www/html/ravenel/includes/database.json"), true);
+    } else {
+      touch("/var/www/html/ravenel/includes/database.json");
+    } // if (file_exists("/var/www/html/ravenel/includes/database.json"))
+
+    // Every Sunday morning reset the pointers the program should avoid.
+    $this->newData["usc-avoid"] = date("D") === "Sun" ? array() : $this->oldData["usc-avoid"];
+    $this->newData["cu-avoid"]  = date("D") === "Sun" ? array() : $this->oldData["cu-avoid"];
+
+    // Acquire new data.
+    $this->updateCarolina();
+    $this->updateSpecimens();
+    $this->updateClemson();
+
+    // Remove duplicates from people array
+    // $this->newData["people"] = array_unique($this->newData["people"]);
+
+    // Alphabetically sort the new data.
+    foreach ($this->newData as $key=>$value) {
+      if ($key === "letters" || $key === "specimens" || $key === "usc-avoid" || $key === "cu-avoid" || $key === "persons") { continue; }
+
+      array_multisort($this->newData[$key], SORT_ASC, SORT_STRING);
+    } // foreach ($this->newData as $key=>$value)
+
+    // Write the database file.
+    if ($this->writeDatabaseFile) {
+      $handle = fopen("/var/www/html/ravenel/includes/database.json", "w");
+      fwrite($handle, json_encode($this->newData));
+      fclose($handle);
+
+      $this->logger("Rewriting Database... Done!\n");
+    } // if ($this->writeDatabaseFile)
+
+    $this->parseDataForLetterMap();
+
+    $this->logger("Update Sequence for Plants and Planters - Henry William Ravenel Complete.");
+    $this->logger("Time: " . $this->time(microtime(true) - $start));
+  } // public function __construct()
+
+  /**
+   * Database Update Based on Symbiota.
+   *
+   * This function connects us to the remote database nicknamed Symbiota. Once a form
+   * of connection is established, we pull the following:
+   * - Each unique specimen's scientific name that is associated with a scanned image
+   *   and thumbnail.
+   * - A count of all specimens within the Henry William Ravenel collection.
+   * - Update: Includes same information for the people (identifiedBy and collectedBy) associated with each specimen as well
+   * - Also pulls full location info for each specimen (locality, county, stateProvince, Country)
+   * An asterisk is added to each name to identify that this is from Symbiota.
+   *
+   */
+  private function updateSpecimens() {
+    if ($this->skipSymbiota) { return; }
+
+    $mysqli = new mysqli("129.252.89.46", "CDHconnector", "!HWRPl@nt$", "floracaroliniana", 3306);
+
+    if ($mysqli->connect_error) {
+      $this->logger("Database connection error. (" . $mysqli->connect_errno . ") - " . $mysqli->connect_error);
+      return;
+    } // if ($mysqli->connect_error)
+
+    $start = microtime(true);
+
+    $this->logger("Specimens Updating Sequence Initiated.");
+
+    $statement = $mysqli->prepare("SELECT DISTINCT omoccurrences.scientificName FROM images, omoccurrences WHERE omoccurrences.collectionCode = 'HWR' AND omoccurrences.otherCatalogNumbers IS NOT NULL AND omoccurrences.occid = images.occid AND images.thumbnailurl IS NOT NULL AND images.url IS NOT NULL");
+    $statement->execute();
+    $statement->bind_result($scientName);
+    $statement->store_result();
+
+    $specCounter = 0;
+
+    while ($statement->fetch()) {
+      $name = ucfirst(trim($scientName));
+
+      if ($name === "" || in_array($scientName, $this->newData["scient"])) { continue; }
+
+      $specCounter++;
+
+      array_push($this->newData["scient"], $scientName . "*");
+    } // while ($statement->fetch())
+
+    $statement = $mysqli->prepare("SELECT COUNT(scientificName) FROM omoccurrences WHERE collectionCode = 'HWR' AND otherCatalogNumbers IS NOT NULL");
+    $statement->execute();
+    $statement->bind_result($specCount);
+    $statement->store_result();
+    $statement->fetch();
+
+    $this->newData["specimens"] = $specCount;
+
+
+
+
+    //Begin processing people by recordedBy
+    $this->logger("People Updating Sequence Initiated.");
+
+    $statement = $mysqli->prepare("(SELECT DISTINCT omoccurrences.recordedBy as plantPeople FROM images, omoccurrences WHERE omoccurrences.collectionCode = 'HWR' AND omoccurrences.otherCatalogNumbers IS NOT NULL AND omoccurrences.occid = images.occid AND images.thumbnailurl IS NOT NULL AND images.url IS NOT NULL)
+                                    UNION (SELECT DISTINCT omoccurrences.identifiedBy as plantPeople FROM images, omoccurrences WHERE omoccurrences.collectionCode = 'HWR' AND omoccurrences.otherCatalogNumbers IS NOT NULL AND omoccurrences.occid = images.occid AND images.thumbnailurl IS NOT NULL AND images.url IS NOT NULL)");
+    $statement->execute();
+    $statement->bind_result($title);
+    $statement->store_result();
+
+    $peopleCounter = 0;
+
+    while ($statement->fetch()) {
+      $title = ucfirst(trim($title));
+      $firstTitle = "";
+
+      // Split the string if multiple people are associated with the specimen
+      while (strpos($title, ';') !== false)
+      {
+        $idx = strpos($title, ';');
+        $firstTitle = substr($title,0,$idx);
+        $title = substr($title, $idx+2);
+        if ($firstTitle === "" || in_array($firstTitle, $this->newData["people"])) { continue; }
+        $peopleCounter++;
+        array_push($this->newData["people"], $firstTitle);
+      }
+      if ($title === "" || in_array($title, $this->newData["people"])) { continue; }
+
+      $peopleCounter++;
+
+      array_push($this->newData["people"], $title);
+    }
+
+    $statement = $mysqli->prepare("SELECT COUNT(recordedBy) FROM omoccurrences WHERE collectionCode = 'HWR' AND otherCatalogNumbers IS NOT NULL");
+    $statement->execute();
+    $statement->bind_result($peopleCount);
+    $statement->store_result();
+    $statement->fetch();
+
+    $this->newData["persons"] = $peopleCount;
+
+
+
+
+    //Begin processing Locations from locality, stateProvince, county, and country
+
+    $this->logger("Location Updating Sequence Initiated.");
+
+    $statement = $mysqli->prepare("(SELECT omoccurrences.locality, omoccurrences.county, omoccurrences.stateProvince, omoccurrences.country FROM images, omoccurrences WHERE omoccurrences.collectionCode = 'HWR' AND omoccurrences.otherCatalogNumbers IS NOT NULL AND omoccurrences.occid = images.occid AND images.thumbnailurl IS NOT NULL AND images.url IS NOT NULL)");
+    $statement->execute();
+    $statement->bind_result($locality, $county, $stateProvince, $country);
+    $statement->store_result();
+
+    $plantPlaceCounter = 0;
+
+    while ($statement->fetch()) {
+      //$plantPlace = ucfirst(trim($plantPlace));
+      $locality = ucfirst(trim($locality));
+      $county = ucfirst(trim($county));
+      $stateProvince = ucfirst(trim($stateProvince));
+      $country = ucfirst(trim($country));
+
+      $plantPlace = $this->convertSpecimenLocation($locality, $county, $stateProvince, $country);
+
+      if ($plantPlace === "" || in_array($plantPlace, $this->newData["geogra"])) { continue; }
+
+      $plantPlaceCounter++;
+
+      array_push($this->newData["geogra"], $plantPlace);
+    }
+
+    $statement = $mysqli->prepare("SELECT COUNT(locality) FROM omoccurrences WHERE collectionCode = 'HWR' AND otherCatalogNumbers IS NOT NULL");
+    $statement->execute();
+    $statement->bind_result($plantPlaceCount);
+    $statement->store_result();
+    $statement->fetch();
+
+    $this->newData["geogras"] = $plantPlaceCount;
+
+
+    $this->logger("The following results were returned: (" . $this->time(microtime(true) - $start) . ")\n");
+    $this->logger("  Unique Locations Added: " . $plantPlaceCounter . "\n");
+    $this->logger("  Total Locations Counted: " . $plantPlaceCount . "\n");
+    $this->logger("  Unique People Added:  " . $peopleCounter);
+    $this->logger("  Total People Counted: " . $peopleCount . "\n");
+    $this->logger("  Unique Specimens Added:  " . $specCounter);
+    $this->logger("  Total Specimens Counted: " . $specCount . "\n");
+    $this->logger("Specimens Updating Sequence Complete.\n");
+
+    $mysqli->close();
+  } 
+  // private function updateSpecimens()
+
+
+
+  /**
+   * Database Update Based on CONTENTdm.
+   *
+   * This function connects us to the remote database stored with Digital Collections
+   * at the University of South Carolina. Each connection is page-based, therefore an
+   * array that stores pointers to be avoided is necessary.
+   *
+   * While running through a pre-determined pointer range, and if the manuscript is a
+   * link that is not useless, then we determine its letter status and store any form
+   * of needed data associated with it.
+   *
+   * Last pointer range update: 1/19/16
+   *
+   */
+  private function updateCarolina() {
+    if ($this->skipCarolina) { return; }
+
+    $start = microtime(true);
+
+    $this->logger("University of South Carolina's CONTENTdm Updating Sequence Initiated.");
+
+    $counter = array("manuscripts" => 0, "date" => 0, "geogra" => 0, "people" => 0, "scient" => 0, "letters" => 0, "coordinates" => 0);
+
+    foreach (range(3900, 9200) as $pointer) {
+      // Skip pointer 9153 as it has too many problems-causing people names.
+      if (in_array($pointer, $this->newData["usc-avoid"]) || $pointer === 9153) { continue; }
+
+      $manuscript = json_decode(file_get_contents("http://digital.tcl.sc.edu:81/dmwebservices/index.php?q=dmGetItemInfo/rav/" . $pointer . "/json"), true);
+
+      if (array_key_exists("code", $manuscript) && $manuscript["code"] === "-2") {
+        array_push($this->newData["usc-avoid"], $pointer);
+
+        continue;
+      } // if (array_key_exists("code", $manuscript) && $manuscript["code"] === "-2")
+
+      $counter["manuscripts"]++;
+
+      // If within this range, the item is a photograph. Add an asterisk.
+      if (9098 < $pointer && $pointer < 9150) {
+        $title = trim($manuscript["title"]);
+
+        if (strpos($title, ";") !== false) {
+          $this->logger("\tSemicolon discovered (" . $pointer . "): " . $title);
+        }
+
+        if ($title === "" || in_array($title . "*", $this->newData["people"])) { continue; }
+
+        if (in_array($title, $this->newData["people"])) {
+          $this->newData["people"][array_search($title, $this->newData["people"])] = $title . "*";
+        } else {
+          array_push($this->newData["people"], $title . "*");
+        } // if (in_array($title, $this->newData["people"]))
+
+        continue;
+      } // if (9098 < $pointer && $pointer < 9150)
+
+      if ($this->isLetter(trim($manuscript["title"]))) {
+        $this->newData["letters"]++;
+        $counter["letters"]++;
+      } // if ($this->isLetter(trim($manuscript["title"])))
+
+      if (stripos($manuscript["title"], "Private Journal") === false && !empty($manuscript["lat"]) && trim($manuscript["lat"]) !== "") {
+        $this->mapData[] = array("pointer" => $pointer, "coordinates" => $manuscript["lat"], "title" => $manuscript["title"]);
+
+        $counter["coordinates"]++;
+      } // if (stripos($manuscript["title"], "Private Journal") === false && !empty($manuscript["lat"]) && trim($manuscript["lat"]) !== "")
+
+      foreach (array("date", "geogra", "people", "scient") as $key) {
+        if (empty($manuscript[$key]) || trim($manuscript[$key]) === "") { continue; }
+
+        foreach (explode(";", $manuscript[$key]) as $value) {
+          $value = ucfirst(trim($value));
+
+          if (strpos($value, "  ") !== false) {
+            $this->logger("\tDouble spacing discovered (" . $pointer . "): " . $value);
+          }
+
+          if ($value === "" || in_array($value, $this->newData[$key]) || in_array($value . "*", $this->newData[$key])) { continue; }
+
+          if ($key === "geogra" && substr($value, 0, 1) === "(") {
+            $this->logger("(" . $pointer . ") Detected geogra value with a beginning parentheses: " . $value);
+          } // if ($key === "geogra" && substr($value, 0, 1) === "(")
+
+          $counter[$key]++;
+
+          array_push($this->newData[$key], $value);
+        } // foreach (explode(";", $manuscript[$key]) as $value)
+      } // foreach (array("date", "geogra", "people", "scient") as $key)
+    } // foreach (range(3900, 9200) as $pointer)
+
+    $this->logger("The following results were returned: (" . $this->time(microtime(true) - $start) . ")\n");
+
+    $this->logger("  Manuscripts Checked: " . $this->rightAlign($counter, "manuscripts"));
+    $this->logger("  Letters Discovered:  " . $this->rightAlign($counter, "letters"));
+    $this->logger("  Letter Coordinates:  " . $this->rightAlign($counter, "coordinates"));
+    $this->logger("  Date Values Added:   " . $this->rightAlign($counter, "date"));
+    $this->logger("  Geogra Values Added: " . $this->rightAlign($counter, "geogra"));
+    $this->logger("  People Values Added: " . $this->rightAlign($counter, "people"));
+    $this->logger("  Scient Values Added: " . $this->rightAlign($counter, "scient") . "\n");
+
+    $this->logger("University of South Carolina's CONTENTdm Updating Sequence Complete.\n");
+  } // private function updateCarolina()
+
+  /**
+   * Database Update Based on CONTENTdm.
+   *
+   * This function connects us to the remove database stored with Digital Collections
+   * at Clemson University.   Each connection is page-based,  therefore an array that
+   * stores pointers to be avoided is necessary.
+   *
+   * While running through a pre-determined pointer range, and if the manuscript is a
+   * link that is not useless, then we determine its letter status and story any form
+   * of needed data associated with it.
+   *
+   * Last pointer range update: 1/19/16
+   *
+   */
+  private function updateClemson() {
+    if ($this->skipClemson) { return; }
+
+    $start = microtime(true);
+
+    $this->logger("Clemson University's CONTENTdm Updating Sequence Initiated.");
+
+    $counter = array("manuscripts" => 0, "date" => 0, "geogra" => 0, "people" => 0, "scient" => 0, "letters" => 0, "coordinates" => 0);
+
+    foreach (range(700, 1500) as $pointer) {
+      if (in_array($pointer, $this->newData["cu-avoid"])) { continue; }
+
+      $manuscript = json_decode(file_get_contents("http://digitalcollections.clemson.edu:81/dmwebservices/index.php?q=dmGetItemInfo/rvl/" . $pointer . "/json"), true);
+
+      if (array_key_exists("code", $manuscript) && $manuscript["code"] === "-2") {
+        array_push($this->newData["cu-avoid"], $pointer);
+
+        continue;
+      } // if (array_key_exists("code", $manuscript) && $manuscript["code"] === "-2")
+
+      $counter["manuscripts"]++;
+
+      if ($this->isLetter(trim($manuscript["title"]))) {
+        $this->newData["letters"]++;
+        $counter["letters"]++;
+      } // if ($this->isLetter(trim($manuscript["title"])))
+
+      if (stripos($manuscript["title"], "Private Journal") === false && !empty($manuscript["latitu"]) && trim($manuscript["latitu"]) !== "") {
+        $this->mapData[] = array("pointer" => $pointer, "coordinates" => $manuscript["latitu"], "title" => $manuscript["title"]);
+
+        $counter["coordinates"]++;
+      } // if (stripos($manuscript["title"], "Private Journal") === false && !empty($manuscript["latitu"]) && trim($manuscript["latitu"]) !== "")
+
+      foreach (array("date", "geogra", "creato", "scient") as $key) {
+        if (empty($manuscript[$key]) || trim($manuscript[$key]) === "") { continue; }
+
+        foreach (explode(";", $manuscript[$key]) as $value) {
+          $value = ucfirst(trim($value));
+
+          if (strpos($value, "  ") !== false) {
+            $this->logger("\tDouble spacing discovered (" . $pointer . "): " . $value);
+          }
+
+          if ($key === "creato") {
+            $key = "people";
+          } // if ($key === "creato")
+
+          if ($value === "" || in_array($value, $this->newData[$key]) || in_array($value . "*", $this->newData[$key])) { continue; }
+
+          if ($key === "geogra" && substr($value, 0, 1) === "(") {
+            $this->logger("(" . $pointer . ") Detected geogra value with beginning parentheses: " . $value);
+            continue;
+          } // if ($key === "geogra" && substr($value, 0, 1) === "(")
+
+          $counter[$key]++;
+
+          array_push($this->newData[$key], $value);
+        } // foreach (explode(";", $manuscript[$key]) as $value)
+      } // foreach (array("date", "geogra", "people", "scient") as $key)
+    } // foreach (range(700, 1500) as $pointer)
+
+    $this->logger("The following results were returned: (" . $this->time(microtime(true) - $start) . ")\n");
+
+    $this->logger("  Manuscripts Checked: " . $this->rightAlign($counter, "manuscripts"));
+    $this->logger("  Letters Discovered:  " . $this->rightAlign($counter, "letters"));
+    $this->logger("  Letter Coordinates:  " . $this->rightAlign($counter, "coordinates"));
+    $this->logger("  Date Values Added:   " . $this->rightAlign($counter, "date"));
+    $this->logger("  Geogra Values Added: " . $this->rightAlign($counter, "geogra"));
+    $this->logger("  Creato Values Added: " . $this->rightAlign($counter, "people"));
+    $this->logger("  Scient Values Added: " . $this->rightAlign($counter, "scient") . "\n");
+
+    $this->logger("Clemson University's CONTENTdm Updating Sequence Complete.\n");
+  } // private function updateClemson()
+
+/**
+   * This function converts the Specimen data into a single line Location
+   *
+   *
+   *
+  */
+  private function convertSpecimenLocation($aLocality, $aCounty, $aStateProvince, $aCountry)
+  {
+    $returnLocation = "";
+    // if ($aCountry === 'United States')
+    // {
+    //   if(($aLocality !== '' || $aCounty !== '') && $aStateProvince !== '')
+    //   {
+        // $stateAbr = "";
+        // // Convert to State Abbreviations
+        // switch ($aStateProvince)
+        // {
+        //   case 'Alabama':
+        //     $stateAbr = '(A.L.)';
+        //     break;
+        //   case 'Alaska':
+        //     $stateAbr = '(A.K.)';
+        //     break;
+        //   case 'Arizona':
+        //     $stateAbr = '(A.Z.)';
+        //     break;
+        //   case 'Arkansas':
+        //     $stateAbr = '(A.R.)';
+        //     break;
+        //   case 'California':
+        //     $stateAbr = '(C.A.)';
+        //     break;
+        //   case 'Colorado':
+        //     $stateAbr = '(C.O.)';
+        //     break;
+        //   case 'Connecticut':
+        //     $stateAbr = '(C.T.)';
+        //     break;
+        //   case 'Delaware':
+        //     $stateAbr = '(D.E.)';
+        //     break;
+        //   case 'Florida':
+        //     $stateAbr = '(F.L.)';
+        //     break;
+        //   case 'Georgia':
+        //     $stateAbr = '(G.A.)';
+        //     break;
+        //   case 'Hawaii':
+        //     $stateAbr = '(H.I.)';
+        //     break;
+        //   case 'Idaho':
+        //     $stateAbr = '(I.D.)';
+        //     break;
+        //   case 'Illinois':
+        //     $stateAbr = '(I.L.)';
+        //     break;
+        //   case 'Indiana':
+        //     $stateAbr = '(I.N.)';
+        //     break;
+        //   case 'Iowa':
+        //     $stateAbr = '(I.A.)';
+        //     break;
+        //   case 'Kansas':
+        //     $stateAbr = '(K.S.)';
+        //     break;
+        //   case 'Kentucky':
+        //     $stateAbr = '(K.Y.)';
+        //     break;
+        //   case 'Louisiana':
+        //     $stateAbr = '(L.A.)';
+        //     break;
+        //   case 'Maine':
+        //     $stateAbr = '(M.E.)';
+        //     break;
+        //   case 'Maryland':
+        //     $stateAbr = '(M.D.)';
+        //     break;
+        //   case 'Massachusetts':
+        //     $stateAbr = '(M.A.)';
+        //     break;
+        //   case 'Michigan':
+        //     $stateAbr = '(M.I.)';
+        //     break;
+        //   case 'Minnesota':
+        //     $stateAbr = '(M.N.)';
+        //     break;
+        //   case 'Mississippi':
+        //     $stateAbr = '(M.S.)';
+        //     break;
+        //   case 'Missouri':
+        //     $stateAbr = '(M.O.)';
+        //     break;
+        //   case 'Montana':
+        //     $stateAbr = '(M.T.)';
+        //     break;
+        //   case 'Nebraska':
+        //     $stateAbr = '(N.E.)';
+        //     break;
+        //   case 'Nevada':
+        //     $stateAbr = '(N.V.)';
+        //     break;
+        //   case 'New Hampshire':
+        //     $stateAbr = '(N.H.)';
+        //     break;
+        //   case 'New Jersey':
+        //     $stateAbr = '(N.J.)';
+        //     break;
+        //   case 'New Mexico':
+        //     $stateAbr = '(N.M.)';
+        //     break;
+        //   case 'New York':
+        //     $stateAbr = '(N.Y.)';
+        //     break;
+        //   case 'North Carolina':
+        //     $stateAbr = '(N.C.)';
+        //     break;
+        //   case 'North Dakota':
+        //     $stateAbr = '(N.D.)';
+        //     break;
+        //   case 'Ohio':
+        //     $stateAbr = '(O.H.)';
+        //     break;
+        //   case 'Oklahoma':
+        //     $stateAbr = '(O.K.)';
+        //     break;
+        //   case 'Oregon':
+        //     $stateAbr = '(O.R.)';
+        //     break;
+        //   case 'Pennsylvania':
+        //     $stateAbr = '(P.A.)';
+        //     break;
+        //   case 'Rhode Island':
+        //     $stateAbr = '(R.I.)';
+        //     break;
+        //   case 'South Carolina':
+        //     $stateAbr = '(S.C.)';
+        //     break;
+        //   case 'South Dakota':
+        //     $stateAbr = '(S.D.)';
+        //     break;
+        //   case 'Tennessee':
+        //     $stateAbr = '(T.N.)';
+        //     break;
+        //   case 'Texas':
+        //     $stateAbr = '(T.X.)';
+        //     break;
+        //   case 'Utah':
+        //     $stateAbr = '(U.T.)';
+        //     break;
+        //   case 'Vermont':
+        //     $stateAbr = '(V.T.)';
+        //     break;
+        //   case 'Virginia':
+        //     $stateAbr = '(V.A.)';
+        //     break;
+        //   case 'Washington':
+        //     $stateAbr = '(W.A.)';
+        //     break;
+        //   case 'West Virginia':
+        //     $stateAbr = '(W.V.)';
+        //     break;
+        //   case 'Wisconsin':
+        //     $stateAbr = '(W.I.)';
+        //     break;
+        //   case 'Wyoming':
+        //     $stateAbr = '(W.Y.)';
+        //     break;
+        //   default:
+        //     break;  
+        // }// end state switch
+
+    //     if ($aLocality !== '')
+    //     {
+    //       $aLocality = str_replace(" ; '", "", $aLocality);
+    //       $returnLocation = $aLocality;
+    //     }
+    //     else if ($aCounty !== '')
+    //     {
+    //       //Fix abnormality for Aiken
+    //       $aCounty = str_replace(" ; '", "", $aCounty);
+    //       $returnLocation = $aCounty;
+    //     }
+        
+    //     return $returnLocation;
+    //   }//End Locality/County if
+
+    //   else if ($aStateProvince !== '') 
+    //   {
+    //     $returnLocation = $aStateProvince;
+    //     return $returnLocation;
+    //   }
+    //   else
+    //   {
+    //     $returnLocation = $aCountry;
+    //     return $returnLocation;
+    //   }
+    // }// END United States if
+    if($aLocality !== '')
+    {
+      $returnLocation = str_replace(" ; '", "" ,$aLocality);
+      return $returnLocation;
+    }
+    else if ($aCounty !== '')
+    {
+      $returnLocation = $aCounty;
+      return $returnLocation;
+    }
+    else if($aStateProvince !== '')
+    {
+      $returnLocation = $aStateProvince;
+      return $returnLocation;
+    }
+    else if($aCountry !== '')
+    {
+      $returnLocation = $aCountry;
+      return $returnLocation;
+    }
+  }
+
+  /**
+   * [removeDuplicateNames description]
+   * @param  [type] $names [description]
+   * @return [type]        [description]
+   */
+  private function removeDuplicateNames($names) {
+    if (count($names) === 1) { return ""; }
+
+    $firstNames  = array();
+    $middleNames = array();
+    $lastNames   = array();
+    $dates       = array();
+
+    foreach ($names as $name) {
+      $comma  = explode(", ", $name);
+      $first  = "";
+      $middle = "";
+      $last   = $comma[0];
+      $date   = "";
+
+      if (count($comma) === 1) { continue; }
+
+      if (strpos($comma[1], " ") !== false) {
+        $space  = explode(" ", $comma[1]);
+        $first  = $space[0];
+        $middle = $space[1];
+      } else {
+        $first = $comma[1];
+      } // if (strpos(" ", $comma[1]) !== false)
+
+      if (count($comma) > 2 && preg_match("/\d{4}-\d{4}/", count($comma) === 3 ? $comma[2] : $comma[3])) {
+        $date = count($comma) === 3 ? $comma[2] : $comma[3];
+      } // if (count($comma) > 2 && preg_match("/\d{4}-\d{4}/", count($comma) === 3 ? $comma[2] : $comma[3]))
+
+      if ($middle !== "") {
+        array_push($middleNames, $middle);
+      } // if ($middle !== "")
+
+      if ($date !== "") {
+        array_push($dates, $date);
+      } // if ($date !== "")
+
+      array_push($firstNames, $first);
+      array_push($lastNames, $last);
+    } // foreach ($names as $name)
+
+    if (count(array_unique($firstNames)) === 1 && count(array_unique($lastNames)) === 1) {
+      $return = $lastNames[0] . ", " . $firstNames[0];
+
+      if (count($middleNames) !== 0) {
+        $return .= " " . $middleNames[0];
+      } // if (count($middleNames) !== 0)
+
+      if (count($dates) !== 0) {
+        $return .= ", " . $dates[0];
+      } // if (count($dates) !== 0)
+
+      return $return;
+    } // if (count(array_unique($firstNames)) === 1 && count(array_unique($lastNames)) === 1)
+
+    return "";
+  } // private function removeDuplicateNames($names)
+
+  /**
+   * Parsing Data for Correspondence Map.
+   *
+   * This function runs through the data that was captured whilst updating from USC's
+   * and Clemson's CONTENTdm databases. Each string is parsed out of a pattern in the
+   * given title. This data is reflected in the Correspondence Map JSON file.
+   *
+   */
+  private function parseDataForLetterMap() {
+    $start = microtime(true);
+
+    $this->logger("Parsing Data for Letter Map Sequence Initiated.");
+
+    $counter = 0;
+    $newLetterMapData = array("type" => "FeatureCollection", "features" => array());
+
+    foreach ($this->mapData as $blah=>$temp) {
+      $to          = "";
+      $date        = "";
+      $from        = "";
+      $item        = "";
+      $title       = "";
+      $pointer     = "";
+      $departure   = "";
+      $destination = "";
+      $coordinates = "";
+
+      $throwingFailure = false;
+
+      foreach ($temp as $key=>$value) {
+        if ($key === "pointer") {
+          $pointer = $value;
+        } else if ($key === "coordinates") {
+          $coordinates = $value;
+        } else if ($key === "title") {
+          // Ignore non-letters and a few specified items right now.
+          if (substr($value, 0, 6) !== "Letter" && $pointer !== 7356 && $pointer !== 7383) { continue; }
+
+          // Acquire the entire title.
+          $title = str_replace("  ", " ", trim($value));
+
+          $explode = explode(", ", $title);
+
+          // Acquire the $item.
+          $item = $explode[0];
+
+          // Determine $date.
+          if (preg_match("/\d{4}-\d{2}-\d{2}/", $explode[1]) || preg_match("/\d{4}/", $explode[1])) {
+            $date = $explode[1];
+            $from = substr($title, strpos($title, $date) + strlen($date) + 2, strrpos($title, " to ") - strpos($title, $date) - strlen($date) - 2);
+
+            // If a leading zero is found in the date, remove it.
+            if (substr($date, -2, 1) === "0") {
+              $date = substr($date, 0, -2) . substr($date, -1);
+            } // if (substr($date, -2, 1) === "0")
+          } else {
+            $date = "Unknown";
+            $from = substr($title, strpos($title, $item) + strlen($item) + 2, strrpos($title, " to ") - strpos($title, $item) - strlen($item) - 2);
+          } // if (preg_match("/\d{4}-\d{2}-\d{2}/", $explode[1]) || preg_match("/\d{4}/", $explode[1]))
+
+          // Begin guestimating where $to is.
+          $to = substr($title, strpos($title, $from) + strlen($from) + 4);
+
+          // Detail out $departure and finalize $from.
+          if (strpos($from, "(") !== false && strpos($from, ")") !== false) {
+            $departure = substr($from, strpos($from, "(") + 1, strlen($from) - strpos($from, "(") - 2);
+
+            $from = trim(substr($from, 0, strpos($from, "(")));
+
+            $explode = explode(" ", $from);
+
+            if (1 < count($explode)) {
+              if (count($explode) === 2) {
+                $from = $explode[1] . ", " . $explode[0];
+              } else if (count($explode) === 3) {
+                $from = $explode[2] . ", " . $explode[0] . " " . $explode[1];
+              } else if (count($explode) === 4) {
+                $from = $explode[2] . ", " . $explode[0] . " " . $explode[1] . " " . $explode[3];
+              } // if (count($explode) === 2)
+            } // if (1 < count($explode))
+          } else {
+            $explode = explode(" ", trim($from));
+
+            if (1 < count($explode)) {
+              if (count($explode) === 2) {
+                $from = $explode[1] . ", " . $explode[0];
+              } else if (count($explode) === 3) {
+                $from = $explode[2] . ", " . $explode[0] . " " . $explode[1];
+              } else if (count($explode) === 4) {
+                $from = $explode[2] . ", " . $explode[0] . " " . $explode[1] . " " . $explode[3];
+              } // if (count($explode) === 2)
+            } // if (1 < count($explode))
+          } // if (strpos($from, "(") !== false && strpos($from, ")") !== false)
+
+          // Detail out $destination and finalize $to.
+          if (strpos($to, "(") !== false && strpos($to, ")") !== false) {
+            $destination = substr($to, strpos($to, "(") + 1, strlen($to) - strpos($to, "("));
+            $destination = substr($destination, 0, strpos($destination, ")"));
+
+            $to = trim(substr($to, 0, strpos($to, "(")));
+
+            $temp = $to;
+
+            $explode = explode(" ", $to);
+
+            if (1 < count($explode) && $to !== "unknown Edgerton") {
+              if (count($explode) === 2) {
+                $to = $explode[1] . ", " . $explode[0];
+              } else if (count($explode) === 3) {
+                $to = $explode[2] . ", " . $explode[0] . " " . $explode[1];
+              } else if (count($explode) === 4) {
+                $to = $explode[2] . ", " . $explode[0] . " " . $explode[1] . " " . $explode[3];
+              } // if (count($explode) === 2)
+            } // if (1 < count($explode))
+          } else if (strpos($to, "[") !== false && strpos($to, "]") !== false) {
+            $destination = substr($to, strpos($to, "[") + 1, strlen($to) - strpos($to, "["));
+            $destination = substr($destination, 0, strpos($destination, "]"));
+
+            $to = trim(substr($to, 0, strpos($to, "[")));
+
+            $temp = $to;
+
+            $explode = explode(" ", $to);
+
+            if (1 < count($explode)) {
+              if (count($explode) === 2) {
+                $to = $explode[1] . ", " . $explode[0];
+              } else if (count($explode) === 3) {
+                $to = $explode[2] . ", " . $explode[0] . " " . $explode[1];
+              } else if (count($explode) === 4) {
+                $to = $explode[2] . ", " . $explode[0] . " " . $explode[1] . " " . $explode[3];
+              } // if (count($explode) === 2)
+            } // if (1 < count($explode))
+          } // if (strpos($to, "(") !== false && strpos($to, ")") !== false)
+
+          // Trim everyone out now that the heavy splitting is done.
+          $to          = trim($to);
+          $date        = trim($date);
+          $from        = trim($from);
+          $item        = trim($item);
+          $departure   = trim($departure);
+          $destination = trim($destination);
+
+          // Create placeholder, trim a known problem, or throw any other known error causing problems.
+          if ($from === "" || $from === "unknown" || $from === "unknown,") {
+            $from = "Unknown";
+          } // if ($from === "" || $from === "unknown" || $from === "unknown,")
+
+          // Remove "Page x".
+          if (strpos($to, "Page ") !== false) {
+            $to = substr($to, 0, strpos($to, "Page "));
+          } // if (strpos($to, "Page ") !== false)
+
+          // Replace placeholder or capitalize unknown.
+          if ($to === "" || $to === "unknown") {
+            $to = "Unknown";
+          } // if ($to === "" || $to === "unknown")
+
+          // Create placeholder, or trim an unknown causing error.
+          if ($departure === "") {
+            $departure = "Unknown";
+          } else if (substr($departure, -1) === ")") {
+            $departure = substr($departure, 0, -1);
+          } // if ($departure === "")
+
+          // Add an abbreviated format for states if there is not one.
+          // Do this after possible parantheses removal.
+          if (strpos(substr($departure, -2), ".") === false && strpos(substr($from, -3), " ") !== false) {
+            $departure = substr($departure, 0, -1) . "." . substr($departure, -1) . ".";
+          } // if (strpos(substr($departure, -2), ".") === false && strpos(substr($from, -3), " ") !== false)
+
+          // Create placeholder.
+          if ($destination === "") {
+            $destination = "Unknown";
+          } // if ($destination === "")
+
+          if (strpos($coordinates, ";") === false) {
+            $throwingFailure = true;
+            break;
+          } // if (strpos($coordinates, ";") === false)
+
+          $explodeSemicolon   = explode(";", $coordinates);
+          $explodeDeparture   = explode(",", $explodeSemicolon[0]);
+          $explodeDestination = explode(",", $explodeSemicolon[1]);
+
+          // We made it this far - make it an array.
+          $newLetterMapData["features"][] = array(
+            "type" => "Feature",
+            "properties" => array(
+              "FID"       => $counter,
+              "Id"        => 0,
+              "segmentID" => $pointer,
+              "Item"      => $item,
+              "Date"      => $date,
+              "From_"     => $from,
+              "To"        => $to,
+              "From_Loc"  => $departure,
+              "To_Loc"    => $destination . "\n",
+              "fromLat"   => (float) $explodeDeparture[0],
+              "fromLong"  => (float) $explodeDeparture[1],
+              "toLat"     => (float) $explodeDestination[0],
+              "toLong"    => (float) $explodeDestination[1]
+            ),
+            "geometry" => array(
+              "type"        => "LineString",
+              "coordinates" => array(
+                array(
+                  (float) $explodeDeparture[1],
+                  (float) $explodeDeparture[0]
+                ),
+                array(
+                  (float) $explodeDestination[1],
+                  (float) $explodeDestination[0]
+                )
+              )
+            )
+          );
+
+          $counter++;
+        } // if ($key === "pointer")
+      } // foreach ($temp as $key=>$value)
+
+      if ($throwingFailure) { continue; }
+    } // foreach ($this->mapData as $blah=>$temp)
+
+    $this->logger("Letter Map has " . $counter . " points. (" . $this->time(microtime(true) - $start) . ")");
+
+    // Write the file.
+    if ($this->writeLetterMapData) {
+      $handle = fopen("/var/www/html/ravenel/js/letter/data/letters.json", "w");
+      fwrite($handle, json_encode($newLetterMapData));
+      fclose($handle);
+
+      $this->logger("Rewriting Letter Map Data... Done!");
+    } // if ($this->writeLetterMapData)
+
+    $this->logger("Parsing Data for Letter Map Sequence Complete.\n");
+  } // private function parseDataForLetterMap()
+
+  /**
+   * Letter Determiniation
+   *
+   * From a given title, determine if it is a letter based on a pre-determined set of
+   * keywords.
+   *
+   * @param string $title
+   *   The title of a manuscript.
+   * @return boolean
+   *   If the manuscript is a letter.
+   */
+  private function isLetter($title) {
+    if (strpos($title, "Private Journal") !== false) { return false; }
+
+    foreach (array("Card", "Certificate", "Circular", "Classification", "Deed", "Envelope", "Essay", "Letter", "List", "Manual", "Note", "Postcard", "Receipt", "Report", "Statement", "Testament") as $key) {
+      if (stripos($title, $key) !== false) {
+        foreach (array("Back", "Front", "recto", "verso", "Page", "Envelope") as $stop) {
+          if (stripos(substr($title, strlen($title) - (strlen($stop) + 3)), $stop) !== false) {
+            return false;
+          } // if (stripos(substr($title, strlen($title) - (strlen($stop) + 3)), $stop) !== false)
+        } // foreach (array("Back", "Front", "recto", "verso", "Page", "Envelope") as $stop)
+
+        return true;
+      } // if (stripos($title, $key) !== false)
+    } // foreach (array("Card", "Certificate", "Circular", "Classification", "Deed", "Envelope", "Essay", "Letter", "List", "Manual", "Note", "Postcard", "Receipt", "Report", "Statement", "Testament") as $key)
+
+    return false;
+  } // private function isLetter($title)
+
+  /**
+   * Right Align Printer.
+   *
+   * This function returns a dynamic number of spaces in order to get the right-align
+   * feel as you would in Microsoft Word.
+   *
+   * @param array $array
+   *   The array of numbers.
+   * @param string $key
+   *   Item that needs to be printed.
+   * @return string
+   *   Finalized string with spacing.
+   */
+  private function rightAlign($array, $key) {
+    $length = 0;
+
+    foreach ($array as $k=>$value) {
+      if (strlen($value) > $length) {
+        $length = strlen($value);
+      } // if (strlen($value) > $length)
+    } // foreach($array as $k=>$value)
+
+    return str_repeat(" ", $length - strlen($array[$key])) . $array[$key];
+  } // private function rightAlign($array, $key)
+
+  /**
+   * Time Printer.
+   *
+   * From a given time period, return how long the period was in minutes or seconds.
+   *
+   * @param string $time
+   *   The subtraction result of the given time.
+   * @return string
+   *   The subtraction result of the given time in minutes or seconds.
+   */
+  private function time($time) {
+    return 60 > $time ? round($time, 4) . " seconds" : date("i:s", $time) . " minutes";
+  } // private function time($time)
+
+  /**
+   * Logger.
+   *
+   * Logs out inputted text.
+   *
+   * @param object $text
+   *   The object to be printed out to the log.
+   */
+  private function logger($text) {
+    $date = new DateTime("now");
+    print $date->format("[D M d - h:i:s A] ") . $text . "\n";
+  } // private function logger($text)
+} // class Ravenel
+
+new Ravenel();

@@ -1,0 +1,57 @@
+Options +FollowSymLinks
+
+# Rewrite URLs.
+RewriteEngine On
+
+# Removes the ".php"
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^([^\.]+)$ $1.php [NC,L]
+
+# Clean URLs.
+RewriteRule "^viewer/([\w-]+)/([\w-]+)/([\w-]+)/([A-Za-z0-9-.,()]+)" "viewer.php?type=$1&institute=$2&number=$3&search=$4" [L]
+RewriteRule "^viewer/([\w-]+)/([\w-]+)/([\w-]+)/([A-Za-z0-9-.,()]+)/" "viewer.php?type=$1&institute=$2&number=$3&search=$4" [L]
+
+RewriteRule "^viewer/([\w-]+)/([\w-]+)/([\w-]+)" "viewer.php?type=$1&institute=$2&number=$3" [L]
+RewriteRule "^viewer/([\w-]+)/([\w-]+)/([\w-]+)/" "viewer.php?type=$1&institute=$2&number=$3" [L]
+
+RewriteRule "^map/([\w-]+)" "map.php?type=$1" [L]
+
+# 400: Bad Request.
+ErrorDocument 400 /400
+# 404: Not Found.
+ErrorDocument 404 /404
+# 500: Internal Server Error.
+ErrorDocument 500 /500
+
+# Compression.
+<ifModule mod_gzip.c>
+mod_gzip_on Yes
+mod_gzip_dechunk Yes
+mod_gzip_item_include file .(html?|txt|css|js|php|pl)$
+mod_gzip_item_include handler ^cgi-script$
+mod_gzip_item_include mime ^text/.*
+mod_gzip_item_include mime ^application/x-javascript.*
+mod_gzip_item_exclude mime ^image/.*
+mod_gzip_item_exclude rspheader ^Content-Encoding:.*gzip.*
+</ifModule>
+
+# Specify a character set.
+AddDefaultCharset UTF-8
+
+# Cache Expiration.
+ExpiresActive On
+ExpiresByType image/jpg "access plus 1 year"
+ExpiresByType image/jpeg "access plus 1 year"
+ExpiresByType image/gif "access plus 1 year"
+ExpiresByType image/png "access plus 1 year"
+ExpiresByType text/css "access plus 1 month"
+ExpiresByType application/pdf "access plus 1 month"
+ExpiresByType application/javascript "access plus 1 month"
+ExpiresByType application/x-javascript "access plus 1 month"
+ExpiresByType text/x-javascript "access plus 1 month"
+ExpiresDefault "access plus 10 days"
+
+# Set Last Modified.
+Header set Last-Modified "Mon, 31 Aug 2009 00:00:00 GMT"

@@ -1,0 +1,259 @@
+Changelog: Plants and Planter - Henry William Ravenel
+4/27/16:
+Design
+- Modified header background color.
+- Changed text on green backgrounds from black to white text.
+- Decreased image sizes on index.
+- Adjusted About: Project Team, Funding, and Partners sections.
+
+4/26/16:
+Design
+- All links within the Travel Map are now directed to ravenel.cdh.sc.edu.
+
+Bug Fixes
+- Clemson items within the update script will now look for items with an appending asterisk.
+- Removed the part where the update script would ignore items with a comma.
+
+4/25/16:
+Functionality
+- A random viewer item will now be linked to the viewer item in the services band.
+- A random map item will now be linked to the map item in the services band.
+- Any photographs will now be skipped in the Search Results: Journals tab.
+- Any photographs in the viewer will not have any metadata rendered.
+- Correspondence Map now zooms in when a filter-search occurs.
+
+Design
+- Added a "View Image" link below photographs in search results for visual assurance.
+
+Bug Fixes
+- Footer link "Random Transcript" is now useable.
+- Case insensitive searching now occurs in the Photographs tab.
+- Not all "From" items were being caught in the map parsing, this has been fixed.
+
+4/22/16:
+Design
+- Flipped the stats and services bands on the home page.
+- Adjusted home page text.
+- Removed "### unique results" from panel footers on the browse page.
+- Adjusted "Project Team" to be centered over both columns.
+- Adjusted about page text.
+- Linked Project Partners to their respective websites.
+- Removed links from the gallery page.
+- Renamed Gallery to Photos.
+- Rotated 180 degrees the front pastedown, back pastedown, and the edge images.
+- Removed heading and social media buttons from the specimen map.
+
+4/14/16:
+Under the Hood:
+- Improved security for connections to Symbiota and Tundra.
+
+4/12/16:
+Design:
+- Almost all instances that will appear on the browse panel in Correspondence Map is now sorted alphabetically by last name.
+  - Items that do not follow this filter are organization names.
+
+4/8/16:
+Functionality:
+- Previous Page and Next Page now correspond to the proper compound object. Not just if there's a valid item next door.
+- Correspondence Map switch from first, last to last, first.
+
+Bug Fixes:
+- Fixed a bug where a manuscript viewer would not account when a compound object has only one item.
+
+4/7/16:
+Design:
+- Services is now white, no border, no background.
+- About images now align with their corresponding header margins.
+- About text has been slightly altered.
+
+Under the Hood:
+- Compressed Specimen and Manuscript classes resource usage.
+- If a user comes across a compound object and it does not have an image associated with it. The compound object will display the first image associated with the object.
+- Improved algorithm for creating location and coordinate values for specimens.
+
+Bug Fixes:
+- Fixed a bug where reCAPTCHA was mad that the url was "ravenel.cdh.sc.edu" and not "tundra.csd.sc.edu".
+- Fixed a bug where the section "Journals that mention $specimen" would only render titles of journals that had "Private Journal" and "Page" in their title.
+
+4/5/16:
+Bug Fixes:
+- Fixed a bug where the gallery images were not linking properly.
+- Fixed a bug where the image on the Travel Map was not the correct link.
+- Modified text within the Travel Map.
+
+4/4/16:
+Bug Fixes:
+- Fixed a bug where a user is unable to view metadata about a specimen from the search results page.
+- Fixed a bug where "Unknown or N/A" was not appearing when in fact, it should have been.
+
+3/31/16:
+Design:
+- Restructured the home page.
+- Improved responsive design on the about page.
+- People and organizations column now includes which names have an available image.
+
+Functionality:
+- Search results now include the photographs from the gallery.
+
+3/29/16:
+Design:
+- Implemented a Table of Contents on the About page.
+
+Functionality:
+- Implemented Gallery page.
+
+3/26/16:
+Bug Fixes:
+- Fixed a bug where "Back to Search Results" did not appear on the viewer page.
+- Fixed a bug where there were two slashes on the viewer URL.
+- Fixed a bug where Fancybox images would not load on the viewer page.
+
+3/24/16:
+Design:
+- Placed a loading icon to assure the user that the image is loading while on the viewer page.
+- Search, Browse, and Map service now link to their respective selling point (Map goes to Correspondence).
+- Travel Map now appears in the footer region.
+
+Bug Fixes:
+- Fixed a bug that prevented Safari users to load the search-results page.
+
+3/22/16:
+Functionality
+- Improved the search results page performance.
+  - Two tests were conducted - 'paris' and 'a' - the following were measured in seconds:
+    - New search saw a 1,598.40% and a 80,798.00% increase in DOM load time.
+    - New search saw a 396.98% and a 460.00% increase in absolute finish load time.
+
+Design:
+- Un-hid the image-tools area.
+
+3/18/16:
+Design:
+- Updated About page text.
+
+Bug Fixes:
+- Fixed a bug where not all items on browse would return capitalized.
+- Fixed a bug where the left-to-right sliding bar on the viewer page would move the right panel off the same row.
+- Fixed a bug where a user could search a blank value from the menu search.
+
+3/15/16:
+Design:
+- Renamed two dropdown menu items for Map in the main menu bar.
+
+Bug Fixes:
+- Fixed a bug where Specimens search results would return "Unknown or N/A" in the location column regardless if there actually was data or not.
+
+2/26/16:
+Functionality:
+- Implemented Travel Map
+- The nightly update now skips locations that start with parentheses alongside whining about it.
+
+Design:
+- Pluralized map navigation name.
+- Removed placeholder text for the specimen heading feature.
+- Removed placeholder text for the map service.
+- Updated text for the Travel Map.
+- Replaced text of 'Denotes an Image of a Specimen' with 'Image Available' to give the users are more direct approach of what the asterisk means on the browse page.
+
+Bug Fixes:
+- Fixed a bug where 'Plants and Planters: Henry William Ravenel...' was not italicized.
+
+2/19/16:
+Design:
+- Implemented favicon among many different platforms.
+
+Bug Fixes:
+- Fixed a bug where blank would return instead of "Unknown or Not Applicable" in the Scientific Plant Names.
+
+2/18/16:
+Functionality:
+- Updated Correspondence Map to the latest functionality created by Aysegul.
+
+Design:
+- Fine-tuned Correspondence Map Browse panel to match the rest of the site.
+
+2/11/16:
+Functionality:
+- Names that are extremely similar or the exact same but with a different date now merge together.
+
+2/9/16:
+Design:
+- Home page buttons have been reverted to just text links.
+
+2/5/16:
+Design:
+- Home page now has a more interactive approach with the addition of buttons.
+- Browse columns are now 70% of the height of a browser rather than a fixed height.
+- Browse now has a note for users unable to find an item within the browse page.
+- About page now has content.
+
+2/2/16:
+Functionality:
+- If a user comes to the viewer page with a correct pointer, but wrong institute, this will be corrected.
+- Nightly Update:
+  - States without abbreviations (i.e. 'SC' instead of 'S.C.') will receive an abbreviation.
+  - Dates with a leading zero (i.e. 'May 02' instead of 'May 2') will have their leading zero removed.
+  - Any fields being sent to the Correspondence Map that are blank will have an 'Unknown' text in place instead.
+
+Bug Fixes:
+- Prevented a bug from occurring on the Correspondence Map when the map's link has the institute saying "Carolina" instead of "Clemson".
+
+1/29/16:
+Functionality:
+- Maps now have a new type. This is used for easier differentiating.
+- Located all instances of state abbreviations without the state - sent corrections to proper individuals.
+
+Design:
+- Maps now have new titles and descriptions.
+- Maps now have their own option inside a new dropdown on the menu bar.
+
+1/28/16:
+Functionality:
+- Finalized the nightly process of updating data for the Correspondence Map.
+
+1/26/16:
+Functionality:
+- Started nightly process of updating data for the Correspondence Map.
+
+Bug Fixes:
+- Fixed a bug where the updated Correspondence Map would not render above 200 pixels high.
+
+1/21/16
+Design:
+- Flow Map height has been adjusted for easier viewing.
+
+1/19/16
+Functionality:
+- There is now an automatic script that is called every night that updates the database.
+- Updated Flow Map to its latest release version.
+
+1/14/16
+Functionality:
+- Mail has been redone on the backend for a faster send and receive process.
+- Almost all instances of .animate() have been replaced with a lighter load through CSS3.
+- Optimization of ravenel script file.
+
+1/12/16
+Functionality:
+- Users now have an explanation of what their query means while they're typing it out.
+- Optimization of ravenel script file.
+
+12/11/15
+Functionality:
+- Reverted all <input> tags within Advanced Search to be required, now the first one is only required.
+- Discovered that the new highest pointer is 9087 for Carolina and 1470 for Clemson.
+- Search Results algorithm no longer removes periods and commas.
+
+Design:
+- Adjusted text color on the Search Results category total count.
+- Moved the "*Denotes a Specimen" text to the heading and relabeled to "* Denotes an Image of a Plant".
+
+Bug Fixes:
+- Fixed a bug where operators were not being passed from Advanced Search to the Search Results.
+- Fixed a bug where using "and" a part of the search query does not work with CONTENTdm.
+- Fixed a bug where the viewer page would not highlight if the search query had any punctuation inside it.
+
+12/9/15
+Functionality:
+- Search Results algorithm has been restructured for narrow results.
+- All <input> tags within the Advanced Search area are required.

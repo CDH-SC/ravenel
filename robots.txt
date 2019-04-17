@@ -1,0 +1,7 @@
+User-agent: *
+
+Disallow: viewer.php
+
+Disallow: includes/*
+Disallow: layout/*
+
