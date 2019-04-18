@@ -48,6 +48,7 @@ class Specimen extends Exception {
 		$this->image = $url;
 		$this->thumb = $thumbnailurl;
 
+		$this->data = array();
 		$this->data["family"] = trim($family);
 		$this->data["habitat"] = trim($habitat);
 		$this->data["location"] = substr(str_replace(", ,", "", trim($locality) . ", " . trim($county) . ", " . trim($stateProvince) . ", " . trim($country) . ", "), 0, -2);
@@ -75,10 +76,10 @@ class Specimen extends Exception {
 
 		$metadata = $application->renderListItem($this->name,"scientificName",$this->search);
 
-		$keys = array("eventDate", "habitat", "family", "location", "coordinates", "identifiedBy", "recordedBy", "cultivationStatus");
+		$keys = array("eventDate", "habitat", "family", "location", "coordinates", "identifiedBy", "recordedBy", "cultivationStatus"); // keys definitely set up in constructor
 		foreach($keys as $item)
 		{
-			$metadata .= $application->renderListItem($this->data[$item], $item, $this->search);
+			$metadata .= $application->renderListItem($this->data[$item],$item,$this->search);
 		}
 
 		return '<ul class="list-group">'.$metadata.'</ul>';
@@ -132,16 +133,19 @@ class Specimen extends Exception {
 		//TODO::CheckLink
 		$clemsonData = GetJSONDataFromLink("http://culcdm.clemson.edu:81/dmwebservices/index.php?q=dmQuery/rvl/scient^".str_replace(" ", "^any!and^scient^", $this->name)."^any/title/0/1024/0/0/0/0/0/1/json",true);
 		
-		$carolinaData = GetJSONDataFromLink("https://server17173.contentdm.oclc.org/dmwebservices/index.php?q=dmQuery/rav/scient^".str_replace(" ", "^any!and^scient^", $this->name)."^any/title/0/1024/0/0/0/0/0/1/json",true);
+		$carolinaData = GetJSONDataFromLink(LINK_USC_S17."?q=dmQuery/rav/scient^".str_replace(" ", "^any!and^scient^", $this->name)."^any/title/0/1024/0/0/0/0/0/1/json",true);
 
 		$results = array_merge_recursive($clemsonData,$carolinaData);
 		$manuscripts = array();
 
-		if(is_array($results))
+		if(is_array($results) && is_array($results["records"]))
 		{
 			foreach($results["records"] as $record)
 			{
-				array_push($manuscripts,new Manuscript($record["pointer"], $record["collection"] == "/rav" ? "Carolina" : "Clemson"));
+				if(isset($record["pointer"]) && isset($record["collection"]))
+				{
+					array_push($manuscripts,new Manuscript($record["pointer"],($record["collection"] == "/rav" ? "Carolina" : "Clemson")));
+				}
 			}
 		}
 
@@ -184,7 +188,7 @@ class Specimen extends Exception {
 		{
 			return empty($this->data[$key]) ? "" : $this->data[$key];
 		}
-		else if($key === "locality")
+		else if($key === "locality" && array_key_exists("location",$this->data))
 		{
 			return $this->data["location"];
 		}

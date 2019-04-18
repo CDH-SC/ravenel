@@ -131,7 +131,7 @@ class Application {
 					$retArray[$decade] = array();
 				}
 
-				//only add new years
+				//only add unique years
 				if(!in_array($date->format("Y"),$retArray[$decade]))
 				{
 					array_push($retArray[$decade],$date->format("Y"));
@@ -168,9 +168,8 @@ class Application {
 		$pointer = trim($pointer);
 		$imageWidth = trim($imageWidth);
 		$imageHeight = trim($imageHeight);
-		     //"http://digital.tcl.sc.edu/utils/ajaxhelper/?CISOROOT=   rav&CISOPTR=9628    &action=2&DMSCALE=30&DMWIDTH=512&DMHEIGHT=512&DMX=0&DMY=0&DMTEXT=&DMROTATE=0"
-		return "http://digital.tcl.sc.edu/utils/ajaxhelper/?CISOROOT=$alias&CISOPTR=$pointer&action=2&DMWIDTH=$imageWidth&DMHEIGHT=$imageHeight";
 		//OMG! -> the digital.tcl.sc.edu still exists with this ajaxhelper!!!
+		return LINK_USC_TCL_UTILS.LINK_USC_TCL_AJAXHELPER."?CISOROOT=$alias&CISOPTR=$pointer&action=2&DMWIDTH=$imageWidth&DMHEIGHT=$imageHeight";
 	}
 
 	/*
@@ -183,10 +182,7 @@ class Application {
 	*/
 	public function getManuscriptCompoundObjectInfo($pointer, $alias='rav')
 	{
-		$pointer = trim($pointer);
-		//TODO::ITSHERE!!!
-		return "https://server17173.contentdm.oclc.org/dmwebservices/?q=dmGetCompoundObjectInfo/$alias/$pointer/json"; //  <- this is the correct thing!!!
-		//THIS IS OLD AND BAD return "http://digital.tcl.sc.edu:81/dmwebservices/?q=dmGetCompoundObjectInfo/$alias/$pointer/json"; //  <- everything with this needs to be changed!!!
+		return LINK_USC_S17.LINK_USC_GET_COMPOUND_OBJ.$alias."/".trim($pointer)."/json"; //  <- this is the correct thing!!!
 	}
 
 	/*
@@ -279,9 +275,9 @@ class Application {
 		{
 			$paragraphs = "";
 			$explodedData = explode(";", $data);
-			foreach ($explodedData as $line)
+			foreach($explodedData as $line)
 			{
-				$paragraphs .= "<p class=\"list-group-item-text\">".$this->highlightSearchTerm($line, $search)."</p>";
+				$paragraphs .= "<p class=\"list-group-item-text\">".$this->highlightSearchTerm($line,$search)."</p>";
 			}
 		}
 
@@ -371,7 +367,6 @@ class Application {
 	public function sendMail($name, $email, $category, $text, $captcha, $url, $platform)
 	{
 		// Validate CAPTCHA.
-		//$response = j/son_decode(file_get_contents("https://www.google.com/recaptcha/api/siteverify?secret=".CAPTCHA_SECRET_KEY."&response=$captcha"));
 		$response = GetJSONDataFromLink("https://www.google.com/recaptcha/api/siteverify?secret=".CAPTCHA_SECRET_KEY."&response=$captcha");
 		if($response != false)
 		{

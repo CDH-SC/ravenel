@@ -59,6 +59,7 @@
 		header("Location: ./index.php");
 	}
 
+	//we know these must be set because of the if statement above
 	$type = $_GET["type"];
 	$institute = $_GET["institute"];
 	$number = $_GET["number"];
@@ -200,12 +201,12 @@
 <?php
 		if($type == "transcript")
 		{
-			$renderData = false;
-			$transcript = $manuscript->getData("transc");
+			$metadataRendered = false;
+			$transcript = $manuscript->getData("transc"); // transcription
 
-			if($transcript == "")
+			if($transcript == "") // no transcription, 
 			{
-				$renderData = true;
+				$metadataRendered = true;
 				print $manuscript->renderViewerMetadata();
 			}
 			else
@@ -247,7 +248,8 @@
 ?>
 	<div class="row">
 <?php
-		if($type == "transcript" && !$renderData)
+		// if there was a transcription, then we need to display the metadata here
+		if($type == "transcript" && !$metadataRendered)
 		{
 ?>
 			<div class="col-md-6 col-xs-12 left-transition" id="viewerMetadata" style="left: 0;">

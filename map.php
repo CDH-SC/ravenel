@@ -1,68 +1,107 @@
 <?php
-/**
- * @file   map.php
- * @author Collin Haines - Center for Digital Humanities
- * @author Aysegul Yeniaras - Center for Digital Humanities (Maps)
- *
- * Renders the Map page.
- *
- * Putting this here because otherwise who knows where it will go.   If you need to
- * log into ArcGIS to edit the plant map, the following are credentials:
- *
- * Username: sccdh.        (Yes, put the period)
- * Password: Glasgow2014
- *
- * Security Question: What city where you born in?
- * Security Answer:   Glasgow
- */
+	/**
+	 * @file   map.php
+	 * @author Collin Haines - Center for Digital Humanities
+	 * @author Aysegul Yeniaras - Center for Digital Humanities (Maps)
+	 *
+	 * Renders the Map page.
+	 *
+	 * Putting this here because otherwise who knows where it will go.   If you need to
+	 * log into ArcGIS to edit the plant map, the following are credentials:
+	 *
+	 * Username: sccdh.        (Yes, put the period)
+	 * Password: Glasgow2014
+	 *
+	 * Security Question: What city where you born in?
+	 * Security Answer:   Glasgow
+	*/
 
-// Redirection
-if (!isset($_GET["type"]) || (isset($_GET["type"]) && $_GET["type"] !== "travel" && $_GET["type"] !== "letters" && $_GET["type"] !== "plants")) {
-  header("Location: /map/letters");
-} // if (!isset($_GET["type"]) || (isset($_GET["type"]) && $_GET["type"] !== "travel" && $_GET["type"] !== "letters" && $_GET["type"] !== "plants"))
+	//To update the Texas Travel map, make sure to update the 'Ravenel Texas Travel' "Web Map" item
 
-require_once "includes/configuration.php";
+	// Redirection
+	if(!isset($_GET["type"]) || $_GET["type"] != "travel" && $_GET["type"] != "letters" && $_GET["type"] != "plants"))
+	{
+		$type = "letters"; // give a default incase it isn't valid
+	}
+	else
+	{
+		$type = $_GET["type"];
+	}
 
-if ($_GET["type"] === "travel") {
-  $header = "Texas Travel Trip";
-} else if ($_GET["type"] === "letters") {
-  $header = "Correspondence to and from Ravenel";
-} else if ($_GET["type"] === "plants") {
-  $header = "Localities of Plant Specimens";
-} // if ($_GET["type"] === "travel")
+	require_once("includes/configuration.php");
 
-$application->setTitle($header . " - Maps");
+	if ($type == "travel")
+	{
+		$header = "Texas Travel Trip";
+	}
+	else if($type == "letters")
+	{
+		$header = "Correspondence to and from Ravenel";
+	}
+	else if($type == "plants")
+	{
+		$header = "Localities of Plant Specimens";
+	}
 
-require "layout/header.php";
+	$application->setTitle($header." - Maps");
+
+	require("layout/header.php");
 ?>
-<div class="container">
-  <div class="row page-header">
-    <div class="col-xs-12">
-      <h1><?php print $header; ?></h1>
+	<div class="container">
+		<div class="row page-header">
+			<div class="col-xs-12">
+				<h1><?=$header?></h1>
 
-      <?php if ($_GET["type"] === "travel"): ?>
-        <p class="lead" style="margin-bottom: 10px;">Geographic representation of Ravenel's trip to Texas to investigate the causes of 'Texas cattle fever'.</p>
-
-        <p><a href="http://biodiversitylibrary.org/page/29491027" target="_blank">Ravenel's report to Commissioner of Agriculture</a></p>
-      <?php elseif ($_GET["type"] === "letters"): ?>
-        <p class="lead">Geographic representation of the correspondence between Ravenel and his colleagues.</p>
-      <?php elseif ($_GET["type"] === "plants"): ?>
-        <p class="lead">Geographic representation of specimens collected by Ravenel both by him and through exchange.</p>
-      <?php endif; ?>
-    </div>
-  </div>
-
-  <div class="row <?php print $_GET["type"]; ?>-map">
-    <div class="col-xs-12">
-      <?php if ($_GET["type"] === "travel"): ?>
-        <iframe src="//arcg.is/1ozHa39" class="map-height" id="frameMap"></iframe>
-      <?php elseif ($_GET["type"] === "letters"): ?>
-        <div id="map-div" style="height: 800px;"></div>
-        <div id="tools-div"></div>
-      <?php elseif ($_GET["type"] === "plants"): ?>
-        <iframe src="//arcg.is/20KzCIX" class="map-height" id="frameMap"></iframe>
-      <?php endif; ?>
-    </div>
-  </div>
-</div>
-<?php require "layout/footer.php"; ?>
+<?php
+	if($type == "travel")
+	{
+?>
+				<p class="lead" style="margin-bottom: 10px;">Geographic representation of Ravenel's trip to Texas to investigate the causes of 'Texas cattle fever'.</p>
+				<p><a href="<?php echo LINK_RAVS_REPORT_COMMISSIONER; ?>" target="_blank">Ravenel's report to Commissioner of Agriculture</a></p>
+<?php
+	}
+	else if($type == "letters")
+	{
+?>
+				<p class="lead">Geographic representation of the correspondence between Ravenel and his colleagues.</p>
+<?php
+	}
+	else if($type == "plants")
+	{
+?>
+				<p class="lead">Geographic representation of specimens collected by Ravenel both by him and through exchange.</p>
+<?php
+	}
+?>
+			</div>
+		</div>
+		<div class="row <?=$type?>-map">
+			<div class="col-xs-12">
+<?php
+	if($type == "travel")
+	{
+?>
+				<iframe src="//arcg.is/1ozHa39" class="map-height" id="frameMap"></iframe>
+<?php
+	}
+	else if($type == "letters")
+	{
+?>
+				<div id="map-div" style="height: 800px;"></div>
+				<div id="tools-div"></div>
+<?php
+	}
+	else if($type == "plants")
+	{
+		//TODO::FindIFRAMEAndFixLinks
+?>
+				<iframe src="//arcg.is/20KzCIX" class="map-height" id="frameMap"></iframe>
+<?php
+	}
+?>
+			</div>
+		</div>
+	</div>
+<?php
+	require ("layout/footer.php");
+?>

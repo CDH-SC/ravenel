@@ -168,25 +168,17 @@
 		<div class="row">
 			<div class="col-sm-4 col-sm-spacing">
 				<i class="fa fa-envelope fa-3x"></i>
-
 				<h3>Letters</h3>
-
-				<span class="stat-counter" data-effect="count"><?php print $json["letters"]; ?></span>
+				<span class="stat-counter" data-effect="count"><?=$json["letters"]?></span>
 			</div>
-
 			<div class="col-sm-4 col-sm-spacing">
 				<i class="fa fa-leaf fa-3x"></i>
-
 				<h3>Plant Specimens</h3>
-
-				<span class="stat-counter" data-effect="count"><?php print $json["specimens"]; ?></span>
+				<span class="stat-counter" data-effect="count"><?=$json["specimens"]?></span>
 			</div>
-
 			<div class="col-sm-4">
 				<i class="fa fa-book fa-3x"></i>
-
 				<h3>Journals</h3>
-
 				<span class="stat-counter" data-effect="count">13</span>
 			</div>
 		</div>

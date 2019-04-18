@@ -30,7 +30,7 @@
 	catch(PDOException $e)
 	{
 		$errorMessage .= "Connection failed: ".$e->getMessage();
-		echo "Connection failed: ".$e->getMessage();
+		LogManager::LogError("On fungi.php: ".$errorMessage);
 	}
 	//$myPDO = new PDO('pgsql:host=107.170.104.93;port=5432;dbname=ravenel', 'cdhconnector');
 	//$myPDO = new PDO('pgsql:host=107.170.104.93;port=5432;dbname=ravenel', 'cdhconnector', '!HWRPl@nt$');
@@ -41,20 +41,16 @@
 
 	//$results = pg_fetch_all($data);
 
-	$results = array();
+	require("layout/header.php");
+
 	if($errorMessage == "")
 	{
 		$prepare = $myPDO->prepare($query);
 		$prepare->execute();
 		$results = $prepare->fetchAll(PDO::FETCH_ASSOC);
 	}
-
-	//TODO::Remove
-	//print_r($results);
-
-	$count = 0;
-
-	require("layout/header.php");
+	else
+	{
 ?>
 <main class="container">
 	<div class="row page-header">
@@ -65,18 +61,23 @@
 	</div>
 	<div class="row">
 <?php
-	foreach($results as $key => $result)
-	{
-		$info = GetJSONDataFromLink($application->getManuscriptCompoundObjectInfo($result['pointer']),true);
-		$first = $info['page'][0]['pageptr'];
+		if(is_array($results) && count($results) > 0)
+		{
+			$count = 0;
+			foreach($results as $key => $result)
+			{
+				$info = GetJSONDataFromLink($application->getManuscriptCompoundObjectInfo($result['pointer']),true);
+				if(isset($info['page'][0]['pageptr'])) // this should always work but just in case something breaks
+				{
+					$first = $info['page'][0]['pageptr'];
 
-		$query = "SELECT image_height, image_width FROM manuscripts WHERE pointer = :pointer";
-		
-		$prepare = $myPDO->prepare($query);
-		$prepare->bindParam(':pointer', $first);
-		$prepare->execute();
+					$query = "SELECT image_height, image_width FROM manuscripts WHERE pointer = :pointer";
+					
+					$prepare = $myPDO->prepare($query);
+					$prepare->bindParam(':pointer', $first);
+					$prepare->execute();
 
-		$image = $prepare->fetchObject();
+					$image = $prepare->fetchObject();
 ?>
 		<a href="<?php print ROOT_FOLDER; ?>viewer.php?type=transcript&institute=Carolina&number=<?=$first?>">
 			<div class="col-sm-4">
@@ -86,19 +87,30 @@
 			</div>
 		</a>
 <?php
-		$count++;
-		if($count % 3 == 0)
-		{
+					$count++;
+					if($count % 3 == 0)
+					{
 ?>
 	</div>
 	<hr>
 	<div class="row">
 <?php
+					}
+				}
+				else
+				{
+					LogManager::LogError("On fungi.php, result (printed below) failed to pull back data from json link \r\n".print_r($result));
+				}
+			}
 		}
-	}
+		else
+		{
+			LogManager::LogError("On fungi.php, the query failed to pull back data","",$query);
+		}
 ?>
 	</div>
 </main>
 <?php
+	}
 	require("layout/footer.php");
 ?>

@@ -29,9 +29,14 @@
 	<meta name="keywords" content="henry, william, ravenel, plants, planter, center, digital, humanities, south, carolina">
 	<meta name="description" content="Henry William Ravenel, a botanist, planter, and author documented over 6,200 botanical specimens and wrote over 3,000 pages of field journals and correspondence.">
 
-	<?php foreach (array(57, 60, 72, 76, 114, 120, 144, 152, 180) as $size): ?>
-	<link rel="apple-touch-icon" sizes="<?php print $size; ?>x<?php print $size; ?>" href="<?php print ROOT_FOLDER; ?>apple-touch-icon-<?php print $size; ?>x<?php print $size; ?>.png">
-	<?php endforeach; ?>
+<?php
+	foreach (array(57, 60, 72, 76, 114, 120, 144, 152, 180) as $size)
+	{
+?>
+	<link rel="apple-touch-icon" sizes="<?=$size?>x<?=$size?>" href="<?php print ROOT_FOLDER; ?>apple-touch-icon-<?=$size?>x<?=$size?>.png">
+<?php
+	}
+?>
 
 	<link rel="icon" type="image/png" href="<?php print ROOT_FOLDER; ?>favicon-32x32.png" sizes="32x32">
 	<link rel="icon" type="image/png" href="<?php print ROOT_FOLDER; ?>android-chrome-192x192.png" sizes="192x192">
@@ -45,7 +50,7 @@
 	<meta name="msapplication-TileImage" content="<?php print ROOT_FOLDER; ?>mstile-144x144.png">
 	<meta name="theme-color" content="#ffffff">
 
-	<title><?php print trim($application->getTitle()) === "" ? "" : trim($application->getTitle())." - "; ?>Henry William Ravenel - Plants and Planter</title>
+	<title><?php print trim($application->getTitle()) == "" ? "" : trim($application->getTitle())." - "; ?>Henry William Ravenel - Plants and Planter</title>
 
 <?php
 	/*
@@ -159,7 +164,7 @@
 						<ul class="nav navbar-nav navbar-right">
 <?php
 	$pages = array("Home", "About", "Browse", "Search");
-	foreach ($pages as $nav)
+	foreach($pages as $nav)
 	{
 ?>
 							<li>
@@ -173,7 +178,6 @@
 								<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
 									Maps<span class="caret"></span>
 								</a>
-
 								<ul class="dropdown-menu" role="menu">
 									<li>
 										<a href="<?php print ROOT_FOLDER; ?>map.php?type=travel">Travel Map</a>
@@ -200,16 +204,13 @@
 						</ul>
 					</div>
 				</nav>
-
 				<form class="form-horizontal pull-right" action="<?php print ROOT_FOLDER; ?>search.php" autocomplete="off" style="display: none; clear: right;" id="submit-search">
 					<legend class="hide">Menu Search Form</legend>
-
 					<fieldset>
 						<div class="form-group header-search">
 							<div class="col-xs-6 pull-right">
 								<input type="text" class="form-control" name="search" value="<?php print isset($_GET["search"]) ? $_GET["search"] : ""; ?>" placeholder="Search">
 							</div>
-
 							<button type="submit" class="btn btn-plant pull-right">Search</button>
 						</div>
 					</fieldset>
@@ -217,7 +218,6 @@
 			</div>
 		</div>
 	</header>
-
 	<div class="alert alert-danger hide" id="alertBrowser">
 		<p class="text-center">Your browser is not recommended to view this website. Please upgrade to a newer version.</p>
 	</div>

@@ -82,7 +82,6 @@
 ?>
 						<ul class="list-inline" data-toggle="columns">
 							<li>Toggle Columns:</li>
-
 <?php
 		for($i = 0; $i < count($array); $i++)
 		{
@@ -92,7 +91,6 @@
 		}
 ?>
 						</ul>
-
 						<table class="table">
 							<thead>
 								<tr>
@@ -119,13 +117,12 @@
 <?php
 		for($i = 0; $i < count($array); $i++)
 		{
-			?>
+?>
 							<li><a href="#remove-column-<?=$i?>" class="<?php print $i < 5 ? "is-visible" : "is-not-visible"; ?>" data-column="<?=$i?>"><?=$array[$i]?></a></li>
 <?php
 		}
 ?>
 						</ul>
-
 						<table class="table">
 							<thead>
 								<tr>
@@ -152,9 +149,9 @@
 	{
 		// Value (server help) => Option (user help)
 		$optionsAll = array(
-			"CISOSEARCHALL"          => "All Fields",
-			"date-eventDate"         => "Date",
-			"geogra-locality"        => "Location",
+			"CISOSEARCHALL" => "All Fields",
+			"date-eventDate" => "Date",
+			"geogra-locality" => "Location",
 			"scientificName-sciname" => "Scientific Plants"
 		);
 
@@ -171,13 +168,13 @@
 		);
 
 		$optionsSpecimens = array(
-			"recordedBy"     => "Collected By",
-			"eventDate"      => "Date",
-			"family"         => "Family",
-			"habitat"        => "Habitat",
-			"identifiedBy"   => "Identified By",
-			"coordinates"    => "Latitude/Longitude",
-			"location"       => "Location",
+			"recordedBy" => "Collected By",
+			"eventDate" => "Date",
+			"family" => "Family",
+			"habitat" => "Habitat",
+			"identifiedBy" => "Identified By",
+			"coordinates" => "Latitude/Longitude",
+			"location" => "Location",
 			"scientificName" => "Scientific Name"
 		);
 ?>

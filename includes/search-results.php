@@ -478,7 +478,7 @@ else if(isset($_GET["options"],$_GET["input"]))
 }
 else
 {
-	header("Location: ../search.php"); //TODO::CheckLink
+	header("Location: ../search.php");
 	exit;
 } 
 
@@ -489,7 +489,7 @@ if($_GET["type"] == "journals" || $_GET["type"] == "letters")
 
 	$data = $_GET["type"] == "letters" ? $search->getLetters() : $search->getJournals();
 
-	exit(json_encode(array("recordsTotal" => count($data), "recordsFiltered" => count($data), "data" => $data)));
+	$jsonEncoded = json_encode(array("recordsTotal" => count($data), "recordsFiltered" => count($data), "data" => $data));
 }
 else if($_GET["type"] == "specimens")
 {
@@ -509,15 +509,17 @@ else if($_GET["type"] == "specimens")
 	}
 
 	$jsonEncoded = json_encode($returnArr);
-	if(!is_string($jsonEncoded))
-	{
-		$jsonEncoded = json_encode(array('recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => array())); // give the defaults back
-		LogManager::LogError("Error encoding json in search-results. Type : specimens. Search : ".$search->getSearch().". Error Code: ".json_last_error());
-	}
-
-	exit($jsonEncoded);
+	
 }
 else if($_GET["type"] == "photographs")
 {
-	exit(json_encode($search->scanImageEntries()));
+	$jsonEncoded = json_encode($search->scanImageEntries());
 }
+
+if(!is_string($jsonEncoded))
+{
+	$jsonEncoded = json_encode(array('recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => array())); // give the defaults back
+	LogManager::LogError("Error encoding json in search-results. Type : specimens. Search : ".$search->getSearch().". Error Code: ".json_last_error());
+}
+
+exit($jsonEncoded);
